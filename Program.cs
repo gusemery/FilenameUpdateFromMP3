@@ -1,15 +1,19 @@
 ﻿using Id3;
 using System;
+using System.Text.RegularExpressions;
 
 namespace MyApp // Note: actual namespace depends on the project name.
 {
     internal class Program
     {
+        static Regex titleCheck = new Regex(@"(\S+) - (\d+) - ([a-zA-Z0-9 -_]+)");
         static string srcRoot;
         static string destRoot;
         static int fileCount = 0;
         static void Main(string[] args)
         {
+            
+            
             if (args.Length != 2 || string.IsNullOrEmpty(args[0]) || string.IsNullOrEmpty(args[1]))
             {
                 Console.WriteLine("Source and destingation directory must be specified.");
@@ -56,26 +60,40 @@ namespace MyApp // Note: actual namespace depends on the project name.
                     if (mp3.HasTags)
                     {
                         Id3Tag tag;
-                        if (mp3.AvailableTagVersions.All(ver => ver.Equals(Id3TagFamily.Version2x)))
+                        Id3TagFamily family;
+                        if (mp3.HasTagOfFamily(Id3TagFamily.Version2x))
                         {
 
                             tag = mp3.GetTag(Id3TagFamily.Version2x);
-
+                            family = Id3TagFamily.Version2x;
                         }
                         else
                         {
                             tag = mp3.GetTag(Id3TagFamily.Version1x);
+                            family = Id3TagFamily.Version1x;
                         }
                         track = int.Parse(tag.Track.Value.ToString()).ToString("D2");
                         title = tag.Title.ToString();
                         artist = tag.Artists.ToString();
                         album = tag.Album.ToString();
+                        
+                        if (int.Parse(track) < 1)
+                        {
+                            if (titleCheck.IsMatch(title))
+                            {
+                                var matches = titleCheck.Match(title);
+                                title = matches.Groups[3].Value.ToString();
+                                track = matches.Groups[2].Value.ToString();
+                            }
+                            //tag = mp3.GetTag(Id3TagFamily.Version1x);
+                            //track = int.Parse(tag.Track.Value.ToString()).ToString("D2");
+                        }
                         process = true;
                     }
-                    //Console.WriteLine("Track : {0}", tag.Track.ToString());
-                    //Console.WriteLine("Title: {0}", tag.Title.Value);
-                    //Console.WriteLine("Artist: {0}", tag.Artists.ToString());
-                    //Console.WriteLine("Album: {0}", tag.Album.Value);
+                    Console.WriteLine("Track : {0}", track);
+                    Console.WriteLine("Title: {0}", title);
+                    Console.WriteLine("Artist: {0}", artist);
+                    Console.WriteLine("Album: {0}", album);
                 }
                     if (process)
                         RenameFile(file, track, title, artist, album);
@@ -105,10 +123,19 @@ namespace MyApp // Note: actual namespace depends on the project name.
                 {
                     Directory.CreateDirectory($"{dir}\\{artist}\\{album}");
                 }
+
                 string destFName = string.Format($"{dir}\\{artist}\\{album}\\{track}-{title}{postFix}");
-                File.Move(file, destFName);
-                Console.WriteLine(destFName);
-            }catch (Exception ex)
+                if (System.IO.File.Exists(destFName))
+                {
+                    Console.WriteLine($"File {destFName} already exists.");
+                }
+                else
+                {
+                    File.Move(file, destFName);
+                    Console.WriteLine(destFName);
+                }
+            }
+            catch (Exception ex)
             {
                 throw ex;
             }

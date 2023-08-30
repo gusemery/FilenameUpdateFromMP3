@@ -2,7 +2,7 @@
   "profiles": {
     "DirectoryFileSync": {
       "commandName": "Project",
-      "commandLineArgs": "./test c:\\backup\\music\\"
+      "commandLineArgs": "c:\\test\\unknown c:\\test\\labeled\\"
     }
   }
 }
